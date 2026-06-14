@@ -55,7 +55,7 @@ jobs:
 
     - name: Setup Android Wrapper Project
       run: |
-        # 1. Clone the base Android app container into a temporary directory
+        # 1. Clone the base Android app container
         git clone --recursive https://github.com/robertkirkman/sm64ex-coop-android-base.git ~/android-wrapper
         
         # 2. Completely destroy the default src folder to wipe hidden placeholder files
@@ -67,14 +67,19 @@ jobs:
         # 4. Cleanly copy your workspace contents (including the verified baserom) into it
         cp -r . ~/android-wrapper/app/jni/src/
         
-        # 5. Bring the merged project folder back into your main workspace directory
+        # 5. FORCE the Android wrapper config files to switch from 64-bit to 32-bit (armeabi-v7a)
+        sed -i 's/arm64-v8a/armeabi-v7a/g' ~/android-wrapper/app/jni/Application.mk 2>/dev/null || true
+        sed -i 's/arm64-v8a/armeabi-v7a/g' ~/android-wrapper/app/build.gradle 2>/dev/null || true
+        
+        # 6. Bring the merged project folder back into your main workspace directory
         mv ~/android-wrapper $GITHUB_WORKSPACE/wrapper
 
-    - name: Compile Native Game Engine
+    - name: Compile Native Game Engine Assets
       run: |
-        # Change directory to where your Makefile is now located inside the wrapper layout
+        # Change directory to where your Makefile is located inside the wrapper layout
         cd $GITHUB_WORKSPACE/wrapper/app/jni/src
-        make TARGET_ARCH=armv7-a APK=1 -j$(nproc)
+        # Run make to extract the ROM and build the touchscreen texture headers into the expected path
+        make APK=1 -j$(nproc)
 
     - name: Package APK with Gradle
       env:
@@ -82,7 +87,7 @@ jobs:
         ANDROID_HOME: /usr/local/lib/android/sdk
         ANDROID_NDK: ${{ env.ANDROID_NDK }}
       run: |
-        # Move to the wrapper root where 'gradlew' actually lives
+        # Move to the wrapper root and assemble the 32-bit package
         cd $GITHUB_WORKSPACE/wrapper
         chmod +x gradlew
         ./gradlew assembleDebug
