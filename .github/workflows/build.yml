@@ -36,12 +36,12 @@ jobs:
     - name: Setup Android SDK and NDK
       uses: android-actions/setup-android@v3
       with:
-        packages: 'platform-tools ndk;25.1.8937393'
+        packages: 'platform-tools ndk;26.1.10909125'
 
     - name: Locate NDK and Set Variable
       run: |
-        # Use find to locate the NDK, then export it for the job
-        NDK_PATH=$(find $ANDROID_SDK_ROOT -name "25.1.8937393" -type d | head -n 1)
+        # Locate the precise NDK version expected by the project wrapper
+        NDK_PATH=$(find $ANDROID_SDK_ROOT -name "26.1.10909125" -type d | head -n 1)
         if [ -z "$NDK_PATH" ]; then
           echo "ERROR: NDK not found!"
           exit 1
@@ -76,14 +76,18 @@ jobs:
 
     - name: Compile Native Game Engine Assets
       run: |
-        # Change directory to where your Makefile is located inside the wrapper layout
+        # Navigate directly into the source directory that Gradle builds from
         cd $GITHUB_WORKSPACE/wrapper/app/jni/src
-        # Run make to extract the ROM and build the touchscreen texture headers into the expected path
-        make APK=1 -j$(nproc)
+
+        # Sync the wrapper's touchscreen textures into this source directory layout
+        mkdir -p textures/touchcontrols
+        cp -r ../textures/touchcontrols/* textures/touchcontrols/ 2>/dev/null || true
+
+        # Compile the host build tools and trigger asset processing inside the correct context
+        make TARGET_ARCH=armv7-a APK=1 ANDROID=1 assets -j$(nproc)
 
     - name: Package APK with Gradle
       env:
-        JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
         ANDROID_HOME: /usr/local/lib/android/sdk
         ANDROID_NDK: ${{ env.ANDROID_NDK }}
       run: |
