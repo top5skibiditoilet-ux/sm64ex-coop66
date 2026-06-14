@@ -37,7 +37,7 @@ jobs:
     - name: Install Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y make clang binutils libsdl2-dev aapt
+        sudo apt-get install -y make clang binutils libsdl2-dev aapt libreadline-dev
 
     - name: Compile Native Game Engine
       run: |
