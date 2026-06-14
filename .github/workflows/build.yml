@@ -39,21 +39,43 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y make clang binutils libsdl2-dev aapt libreadline-dev
 
+    - name: Setup Android Wrapper Project
+      run: |
+        # 1. Clone the base Android app container into a temporary directory outside the workspace
+        git clone --recursive https://github.com/robertkirkman/sm64ex-coop-android-base.git ~/android-wrapper
+        
+        # 2. Clear out its default placeholder engine source files
+        rm -rf ~/android-wrapper/app/jni/src/*
+        
+        # 3. Copy your custom mod repository files right into its source directory
+        cp -r . ~/android-wrapper/app/jni/src/
+        
+        # 4. Bring the merged project folder back into your main workspace directory
+        mv ~/android-wrapper $GITHUB_WORKSPACE/wrapper
+
     - name: Compile Native Game Engine
       run: |
-        # Point make to the NDK and target 32-bit architecture
+        # Change directory to where your Makefile is now located inside the wrapper layout
+        cd $GITHUB_WORKSPACE/wrapper/app/jni/src
         make TARGET_ARCH=armv7-a APK=1 -j$(nproc)
 
-    - name: Verify and Locate Generated APK
+    - name: Package APK with Gradle
+      env:
+        JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+        ANDROID_HOME: /usr/local/lib/android/sdk
+        ANDROID_NDK: ${{ env.ANDROID_NDK }}
       run: |
-        echo "Checking if an APK file was generated..."
-        find . -name "*.apk"
-        
-        echo "Listing build directory contents to see what was created:"
-        find build -maxdepth 3 2>/dev/null || echo "No build directory found!"
+        # Move to the wrapper root where 'gradlew' actually lives
+        cd $GITHUB_WORKSPACE/wrapper
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload Finished APK
       uses: actions/upload-artifact@v4
       with:
         name: sm64ex-coop-32bit-APK
-        path: "**/*.apk"
+        path: wrapper/app/build/outputs/apk/debug/*.apk
+        if-no-files-found: error
+        compression-level: 6
+        overwrite: false
+        include-hidden-files: false
