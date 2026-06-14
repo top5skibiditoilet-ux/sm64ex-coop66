@@ -19,23 +19,26 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    # Explicitly install the NDK, which is required to compile C++ code
+    - name: Install Android NDK
+      run: |
+        echo "y" | sudo /usr/local/lib/android/sdk/tools/bin/sdkmanager --install "ndk;25.1.8937393"
+        echo "NDK_PATH=/usr/local/lib/android/sdk/ndk/25.1.8937393" >> $GITHUB_ENV
 
-    - name: Install Dependencies
+    - name: Install Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git wget make python3 zip apksigner clang binutils libglvnd-dev libreadline-dev libsdl2-dev aapt
+        sudo apt-get install -y make clang binutils libsdl2-dev aapt
 
-    - name: Compile Native Game Engine (Step 1)
+    - name: Compile Native Game Engine
       run: |
-        # Use armv7-a to ensure 32-bit compatibility
+        # Point make to the NDK we just installed
+        export ANDROID_NDK=$NDK_PATH
         make TARGET_ARCH=armv7-a APK=1 -j$(nproc)
 
-    - name: Package APK with Gradle (Step 2)
+    - name: Package APK with Gradle
       run: |
-        # Now find the gradlew in the project and build the final APK
-        # We use 'find' to locate it dynamically so we don't have to guess the path
+        # Use find to dynamically locate the wrapper
         GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
         chmod +x "$GRADLEW_PATH"
         "$GRADLEW_PATH" assembleDebug
