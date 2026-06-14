@@ -13,7 +13,30 @@ jobs:
       with:
         submodules: recursive
 
-    - name: List Files
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Dependencies
       run: |
-        echo "Listing all files in the root directory:"
-        ls -R
+        sudo apt-get update
+        sudo apt-get install -y git wget make python3 zip apksigner clang binutils libglvnd-dev libreadline-dev libsdl2-dev aapt
+
+    - name: Build with Gradle
+      run: |
+        # Navigate all the way into the actual Android project root
+        cd platform/android/android
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    - name: Upload Finished APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: sm64ex-coop-32bit-APK
+        # Safety net: scan the entire workspace for the generated APK file
+        path: "**/*.apk"
