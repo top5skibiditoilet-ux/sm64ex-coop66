@@ -13,6 +13,20 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Verify Baserom Exists at Root
+      run: |
+        echo "Checking for Super Mario 64 ROM..."
+        if [ ! -f "baserom.us.z64" ]; then
+          echo "=========================================================================="
+          echo "ERROR: baserom.us.z64 was NOT found in the root directory!"
+          echo "Please ensure your ROM is named EXACTLY 'baserom.us.z64' (all lowercase)."
+          echo "Current directory contents:"
+          ls -la
+          echo "=========================================================================="
+          exit 1
+        fi
+        echo "Success: baserom.us.z64 found and ready for compilation!"
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -41,16 +55,19 @@ jobs:
 
     - name: Setup Android Wrapper Project
       run: |
-        # 1. Clone the base Android app container into a temporary directory outside the workspace
+        # 1. Clone the base Android app container into a temporary directory
         git clone --recursive https://github.com/robertkirkman/sm64ex-coop-android-base.git ~/android-wrapper
         
-        # 2. Clear out its default placeholder engine source files
-        rm -rf ~/android-wrapper/app/jni/src/*
+        # 2. Completely destroy the default src folder to wipe hidden placeholder files
+        rm -rf ~/android-wrapper/app/jni/src
         
-        # 3. Copy your custom mod repository files right into its source directory
+        # 3. Recreate a clean src directory
+        mkdir -p ~/android-wrapper/app/jni/src
+        
+        # 4. Cleanly copy your workspace contents (including the verified baserom) into it
         cp -r . ~/android-wrapper/app/jni/src/
         
-        # 4. Bring the merged project folder back into your main workspace directory
+        # 5. Bring the merged project folder back into your main workspace directory
         mv ~/android-wrapper $GITHUB_WORKSPACE/wrapper
 
     - name: Compile Native Game Engine
