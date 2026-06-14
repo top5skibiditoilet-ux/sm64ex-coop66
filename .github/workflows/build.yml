@@ -83,8 +83,8 @@ jobs:
         mkdir -p textures/touchcontrols
         cp -r ../textures/touchcontrols/* textures/touchcontrols/ 2>/dev/null || true
 
-        # Compile ALL engine tools, assets, and source code with the Android flags enabled
-        make TARGET_ARCH=armv7-a APK=1 ANDROID=1 -j$(nproc)
+        # Compile ALL engine tools, assets, and source code with the Android and Touch flags enabled
+        make TARGET_ARCH=armv7-a APK=1 ANDROID=1 TOUCH_CONTROLS=1 -j$(nproc)
 
     - name: Package APK with Gradle
       env:
