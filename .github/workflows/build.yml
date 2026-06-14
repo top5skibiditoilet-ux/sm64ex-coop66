@@ -1,2 +1,15 @@
-- name: Find Gradlew Location
-  run: find . -name "gradlew"
+- name: Find and Build with Gradle
+      run: |
+        # Search for gradlew and build the first one found
+        find . -name "gradlew" -type f | while read -r gradlew_path; do
+          echo "Found gradlew at: $gradlew_path"
+          chmod +x "$gradlew_path"
+          # Run the build
+          "$gradlew_path" assembleDebug
+          # Exit after the first successful find/build to avoid running it multiple times
+          exit 0
+        done
+        
+        # If the loop finishes without exiting, the file was never found
+        echo "Error: gradlew not found!"
+        exit 1
