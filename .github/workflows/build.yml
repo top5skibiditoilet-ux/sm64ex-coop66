@@ -19,31 +19,20 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # Explicitly install the NDK, which is required to compile C++ code
     - name: Setup Android SDK and NDK
       uses: android-actions/setup-android@v3
       with:
-        # Explicitly ask for the NDK package
         packages: 'platform-tools ndk;25.1.8937393'
 
-    - name: Locate NDK
+    - name: Locate NDK and Set Variable
       run: |
-        # Search the SDK root for the NDK folder
-        echo "Searching for NDK in $ANDROID_HOME..."
-        # This locates the actual directory where the NDK is installed
-        NDK_PATH=$(find $ANDROID_HOME -name "25.1.8937393" -type d | head -n 1)
-        
+        # Use find to locate the NDK, then export it for the job
+        NDK_PATH=$(find $ANDROID_SDK_ROOT -name "25.1.8937393" -type d | head -n 1)
         if [ -z "$NDK_PATH" ]; then
           echo "ERROR: NDK not found!"
           exit 1
         fi
-        
-        echo "NDK found at: $NDK_PATH"
         echo "ANDROID_NDK=$NDK_PATH" >> $GITHUB_ENV
-
-    - name: Set NDK Path Variable
-      run: |
-        echo "ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/25.1.8937393" >> $GITHUB_ENV
 
     - name: Install Build Dependencies
       run: |
@@ -52,13 +41,11 @@ jobs:
 
     - name: Compile Native Game Engine
       run: |
-        # Point make to the NDK we just installed
-        export ANDROID_NDK=$NDK_PATH
+        # Use the variable we defined in the 'Locate NDK' step
         make TARGET_ARCH=armv7-a APK=1 -j$(nproc)
 
     - name: Package APK with Gradle
       run: |
-        # Use find to dynamically locate the wrapper
         GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
         chmod +x "$GRADLEW_PATH"
         "$GRADLEW_PATH" assembleDebug
