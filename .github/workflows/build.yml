@@ -23,7 +23,23 @@ jobs:
     - name: Setup Android SDK and NDK
       uses: android-actions/setup-android@v3
       with:
-        ndk-version: '25.1.8937393'
+        # Explicitly ask for the NDK package
+        packages: 'platform-tools ndk;25.1.8937393'
+
+    - name: Locate NDK
+      run: |
+        # Search the SDK root for the NDK folder
+        echo "Searching for NDK in $ANDROID_HOME..."
+        # This locates the actual directory where the NDK is installed
+        NDK_PATH=$(find $ANDROID_HOME -name "25.1.8937393" -type d | head -n 1)
+        
+        if [ -z "$NDK_PATH" ]; then
+          echo "ERROR: NDK not found!"
+          exit 1
+        fi
+        
+        echo "NDK found at: $NDK_PATH"
+        echo "ANDROID_NDK=$NDK_PATH" >> $GITHUB_ENV
 
     - name: Set NDK Path Variable
       run: |
